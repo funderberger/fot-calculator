@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФОТ Калькулятор - Реальная стоимость сотрудника</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            background: var(--card);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .tab-button:hover {
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-item {
+            background: rgba(37, 99, 235, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .stat-item.success {
+            background: rgba(16, 185, 129, 0.05);
+            border-left-color: var(--success);
+        }
+
+        .stat-item.danger {
+            background: rgba(239, 68, 68, 0.05);
+            border-left-color: var(--danger);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        #calculationResults {
+            display: none;
+        }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+
+        .faq-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            padding: 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: rgba(37, 99, 235, 0.05);
+            border-color: var(--primary);
+        }
+
+        .faq-answer {
+            display: none;
+            padding: 16px;
+            background: var(--bg);
+            color: var(--text-light);
+            border-left: 3px solid var(--primary);
+            margin-top: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .faq-answer.active {
+            display: block;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 30px 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            color: var(--text);
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            border-left: 4px solid var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 24px;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-button {
+                flex: 1 1 auto;
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ФОТ Калькулятор</h1>
+            <p>Рассчитай реальную стоимость сотрудника за 30 секунд</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('calculator')">Калькулятор</button>
+            <button class="tab-button" onclick="switchTab('faq')">FAQ</button>
+        </div>
+
+        <!-- CALCULATOR TAB -->
+        <div id="calculator" class="tab-content active">
+            <div class="alert">
+                Введи оклад сотрудника, его KPI выполнение и маржу отдела — получишь полную картину того, сколько он на самом деле стоит компании и когда окупится.
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2>Данные сотрудника</h2>
+                    <div class="form-group">
+                        <label>ФИ сотрудника</label>
+                        <input type="text" id="employeeName" placeholder="Иван Иванов">
+                    </div>
+                    <div class="form-group">
+                        <label>Ежемесячный оклад (₽)</label>
+                        <input type="number" id="salary" placeholder="100000" value="100000">
+                    </div>
+                    <div class="form-group">
+                        <label>KPI выполнение (%)</label>
+                        <input type="number" id="kpiPercent" placeholder="100" value="100" min="0" max="200">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Параметры расчёта</h2>
+                    <div class="form-group">
+                        <label>Базовый KPI отдела (₽/месяц)</label>
+                        <input type="number" id="baseKPI" placeholder="1000000" value="1000000">
+                    </div>
+                    <div class="form-group">
+                        <label>Маржа на доход (%)</label>
+                        <input type="number" id="margin" placeholder="40" value="40" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>НДФЛ (%)</label>
+                        <input type="number" id="ndfl" placeholder="13" value="13" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Страховые взносы (%)</label>
+                        <input type="number" id="insurance" placeholder="30" value="30" min="0" max="100" step="0.1">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Льготы</h2>
+                    <div class="form-group">
+                        <label>ДМС (₽/месяц)</label>
+                        <input type="number" id="dms" placeholder="5000" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Мобильная связь (₽/месяц)</label>
+                        <input type="number" id="mobile" placeholder="500" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Питание (₽/месяц)</label>
+                        <input type="number" id="meals" placeholder="5000" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Спортзал (₽/месяц)</label>
+                        <input type="number" id="gym" placeholder="2000" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <button onclick="calculateSalary()">Рассчитать</button>
+                <button onclick="resetCalculator()" style="background: #64748b; margin-left: 10px;">Очистить</button>
+
+                <div id="calculationResults">
+                    <div class="section-title">Расчёт реальной стоимости</div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Реальный доход</div>
+                            <div class="stat-value" id="realIncomeValue">—</div>
+                        </div>
+                        <div class="stat-item success">
+                            <div class="stat-label">Прибыль от сотрудника</div>
+                            <div class="stat-value" id="profitValue">—</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-label">Расходы компании</div>
+                            <div class="stat-value" id="costValue">—</div>
+                        </div>
+                        <div class="stat-item success">
+                            <div class="stat-label">ROI (%)</div>
+                            <div class="stat-value" id="roiValue">—</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Окупается за</div>
+                            <div class="stat-value" id="paybackValue">—</div>
+                        </div>
+                        <div class="stat-item success">
+                            <div class="stat-label">Годовая прибыль</div>
+                            <div class="stat-value" id="yearlyProfitValue">—</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Детальный расчёт</div>
+                    <div style="background: var(--bg); padding: 16px; border-radius: 8px; font-size: 14px; line-height: 1.8;">
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <span>Оклад</span>
+                            <span id="baseSalary">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <span>НДФЛ</span>
+                            <span id="ndflAmount">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-weight: 600;">
+                            <span>На руки</span>
+                            <span id="netAmount">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <span>Страховые взносы</span>
+                            <span id="insuranceAmount">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <span>ДМС</span>
+                            <span id="dmsAmount">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <span>Мобильная</span>
+                            <span id="mobileAmount">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                            <span>Питание</span>
+                            <span id="mealsAmount">—</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 2px solid var(--primary); font-weight: 600; color: var(--primary);">
+                            <span>Всего расходов компании</span>
+                            <span id="totalCost">—</span>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Прогноз на год</div>
+                    <div class="chart-container">
+                        <canvas id="roiChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ TAB -->
+        <div id="faq" class="tab-content">
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Что такое базовый KPI отдела?</div>
+                <div class="faq-answer">
+                    Это сумма, которую должен генерировать любой сотрудник этого отдела при 100% выполнении за месяц. Например, для отдела продаж это может быть 1 млн рублей выручки в месяц. Если сотрудник выполнил KPI на 80%, то он сгенерировал 800k выручки.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Как считается маржа?</div>
+                <div class="faq-answer">
+                    Маржа — это процент прибыли, который остаётся от дохода после всех прямых расходов. Например, если выручка 1 млн и маржа 40%, то чистая прибыль 400k. Этот параметр зависит от вашей отрасли и способа расчётов в компании.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Что такое ROI в этом контексте?</div>
+                <div class="faq-answer">
+                    ROI показывает, какую прибыль приносит сотрудник на каждый рубль, потраченный на него. ROI 100% означает, что если компания потратила на сотрудника 250k в месяц, он приносит 250k прибыли. ROI 200% означает, что он приносит 500k прибыли.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Как использовать это при найме?</div>
+                <div class="faq-answer">
+                    До найма ты знаешь примерный KPI отдела. Подставь оклад, который ты готов платить кандидату, и посмотри его ROI. Если кандидат Senior и окупится за 4 месяца при 100% KPI — это хороший сигнал. Если Middle окупится за 1 месяц — это отличная инвестиция.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Почему кто-то может быть убыточным?</div>
+                <div class="faq-answer">
+                    Новый сотрудник может быть в минусе первые месяцы, потому что платишь ему оклад и льготы, а выдача идёт медленнее из-за адаптации. Это нормально для Junior. Главное — знать, когда он окупится и когда начнёт приносить прибыль.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Учитываются ли налоги и страховки в расходах?</div>
+                <div class="faq-answer">
+                    Да, полностью. Калькулятор считает все расходы компании: оклад, НДФЛ, страховые взносы (ПФР, ФМС, ОМС) и все льготы. Это реальная стоимость сотрудника для бизнеса.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Можно ли применить это к разным отделам?</div>
+                <div class="faq-answer">
+                    Да, просто меняй базовый KPI в зависимости от отдела. Для продаж это выручка, для разработки — стоимость проектов, для маркетинга — стоимость лидов. Каждый отдел считается по-своему, но логика одна.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Где получить ссылку на калькулятор?</div>
+                <div class="faq-answer">
+                    Ты сейчас на нём. Просто поделись ссылкой на этот сайт с кем угодно — люди смогут использовать калькулятор прямо в браузере.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Как эта информация помогает в управлении?</div>
+                <div class="faq-answer">
+                    Когда директор, финансы и HR видят одни и те же цифры, найм становится стратегическим решением. Ты берёшь людей не потому что нужны, а потому что знаешь, за сколько месяцев они окупятся. Это меняет весь подход к управлению талантами.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            answer.classList.toggle('active');
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'RUB',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+
+        function calculateSalary() {
+            const salary = parseFloat(document.getElementById('salary').value) || 0;
+            const kpiPercent = parseFloat(document.getElementById('kpiPercent').value) || 0;
+            const baseKPI = parseFloat(document.getElementById('baseKPI').value) || 0;
+            const margin = parseFloat(document.getElementById('margin').value) || 0;
+            const ndflRate = parseFloat(document.getElementById('ndfl').value) / 100 || 0;
+            const insuranceRate = parseFloat(document.getElementById('insurance').value) / 100 || 0;
+            const dms = parseFloat(document.getElementById('dms').value) || 0;
+            const mobile = parseFloat(document.getElementById('mobile').value) || 0;
+            const meals = parseFloat(document.getElementById('meals').value) || 0;
+            const gym = parseFloat(document.getElementById('gym').value) || 0;
+
+            // Расчёты
+            const realIncome = (baseKPI * kpiPercent) / 100;
+            const profit = (realIncome * margin) / 100;
+            const ndflAmount = salary * ndflRate;
+            const netAmount = salary - ndflAmount;
+            const insuranceAmount = salary * insuranceRate;
+            const totalBenefits = dms + mobile + meals + gym;
+            const totalCost = salary + insuranceAmount + totalBenefits;
+            const netProfit = profit - totalCost;
+            const roi = totalCost > 0 ? ((netProfit / totalCost) * 100).toFixed(2) : 0;
+            const paybackMonths = profit > 0 ? Math.ceil(totalCost / profit) : '∞';
+            const yearlyProfit = netProfit * 12;
+
+            // Показываем результаты
+            document.getElementById('calculationResults').style.display = 'block';
+            document.getElementById('realIncomeValue').textContent = formatCurrency(realIncome);
+            document.getElementById('profitValue').textContent = formatCurrency(profit);
+            document.getElementById('costValue').textContent = formatCurrency(totalCost);
+            document.getElementById('roiValue').textContent = roi + '%';
+            document.getElementById('paybackValue').textContent = paybackMonths + ' мес.';
+            document.getElementById('yearlyProfitValue').textContent = formatCurrency(yearlyProfit);
+
+            // Детальный расчёт
+            document.getElementById('baseSalary').textContent = formatCurrency(salary);
+            document.getElementById('ndflAmount').textContent = '-' + formatCurrency(ndflAmount);
+            document.getElementById('netAmount').textContent = formatCurrency(netAmount);
+            document.getElementById('insuranceAmount').textContent = formatCurrency(insuranceAmount);
+            document.getElementById('dmsAmount').textContent = formatCurrency(dms);
+            document.getElementById('mobileAmount').textContent = formatCurrency(mobile);
+            document.getElementById('mealsAmount').textContent = formatCurrency(meals);
+            document.getElementById('totalCost').textContent = formatCurrency(totalCost);
+
+            // График
+            drawROIChart(totalCost, profit, 12);
+        }
+
+        function resetCalculator() {
+            document.getElementById('salary').value = '100000';
+            document.getElementById('kpiPercent').value = '100';
+            document.getElementById('baseKPI').value = '1000000';
+            document.getElementById('margin').value = '40';
+            document.getElementById('dms').value = '0';
+            document.getElementById('mobile').value = '0';
+            document.getElementById('meals').value = '0';
+            document.getElementById('gym').value = '0';
+            document.getElementById('calculationResults').style.display = 'none';
+        }
+
+        let roiChart = null;
+
+        function drawROIChart(cost, profit, months) {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            const labels = [];
+            const cumProfit = [];
+            let total = 0;
+
+            for (let i = 1; i <= months; i++) {
+                labels.push('Месяц ' + i);
+                total += (profit - cost);
+                cumProfit.push(Math.round(total));
+            }
+
+            if (roiChart) roiChart.destroy();
+            roiChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Накопленная прибыль (₽)',
+                        data: cumProfit,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
