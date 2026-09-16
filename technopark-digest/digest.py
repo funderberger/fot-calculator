@@ -118,14 +118,14 @@ def collect(config):
     return items[: config.get("max_items", 10)], problems, seen
 
 
-def enrich(items, enabled=True):
+def enrich(items, enabled=True, debug=False):
     """Добираем 'что сделали' со страницы статьи там, где фид его не дал."""
     if not enabled:
         return
     for item in items:
         if item["what"]:
             continue
-        description = extract.fetch_description(item["link"])
+        description = extract.fetch_description(item["link"], debug=debug)
         if description:
             item["what"] = extract.summarize(description, item["title"])
 
@@ -238,7 +238,7 @@ def main():
 
     config = yaml.safe_load(pathlib.Path(args.config).read_text())
     items, problems, seen = collect(config)
-    enrich(items, enabled=not args.no_enrich)
+    enrich(items, enabled=not args.no_enrich, debug=True)
     text = render(items, problems)
 
     # Диагностика источников нужна в логах всегда, а не только при --dry-run:

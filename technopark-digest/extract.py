@@ -281,8 +281,9 @@ def resolve_google_news(markup):
     return ""
 
 
-def fetch_description(url, timeout=8, depth=0):
+def fetch_description(url, timeout=8, depth=0, debug=False):
     """Сетевой поход за описанием. Любая ошибка -> пустая строка, дайджест не падает."""
+    import sys
     import urllib.request
 
     request = urllib.request.Request(
@@ -299,7 +300,9 @@ def fetch_description(url, timeout=8, depth=0):
                 return ""
             markup = response.read(400_000)
             final_host = urllib.parse.urlsplit(response.geturl()).netloc.lower()
-    except Exception:
+    except Exception as exc:
+        if debug:
+            print(f"DEBUG описание не получено {url[:60]}... -> {exc!r}", file=sys.stderr)
         return ""
 
     description = extract_meta_description(markup)
@@ -309,6 +312,11 @@ def fetch_description(url, timeout=8, depth=0):
     # Застряли на промежуточной странице Google News — идём к издателю.
     if "news.google.com" in final_host and depth < 1:
         target = resolve_google_news(markup)
+        if debug:
+            print(f"DEBUG застряли на Google News, цель -> {target[:70] or 'не найдена'}",
+                  file=sys.stderr)
         if target:
-            return fetch_description(target, timeout=timeout, depth=depth + 1)
+            return fetch_description(target, timeout=timeout, depth=depth + 1, debug=debug)
+    if debug:
+        print(f"DEBUG описания нет на странице {final_host}", file=sys.stderr)
     return ""
