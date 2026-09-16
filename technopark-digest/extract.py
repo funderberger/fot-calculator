@@ -109,6 +109,12 @@ ACTION_WORDS = {
     "company-owned", "ai-powered", "state-of-the-art", "multi-million",
     "the", "a", "an", "its", "his", "her", "their", "our", "this", "that",
     "to", "at", "in", "on", "with", "and", "of", "for", "from", "by",
+    "helps", "help", "helped", "fund", "funds", "funded", "funding",
+    "wins", "win", "won", "gets", "get", "got", "picks", "pick", "picked",
+    "eyes", "eye", "seeks", "seek", "sought", "starts", "start", "started",
+    "begins", "begin", "began", "boosts", "boost", "boosted", "marks",
+    "hits", "hit", "tops", "top", "moves", "move", "moved", "brings",
+    "bring", "brought", "takes", "take", "took", "makes", "make", "made",
 }
 
 TAG_RE = re.compile(r"<[^>]+>")
@@ -230,16 +236,19 @@ def summarize(summary, title, limit=260):
 def normalize(title, summary):
     """Единая точка входа: сырые поля фида -> поля карточки."""
     title, publisher = split_title_source(clean_text(title))
+    summary_raw = summary
     summary_clean = clean_text(summary)
-    park = extract_park(title, summary_clean)
-    country, flag = park_country(park, title, summary_clean)
+    # Выкидываем имя издания из текста, по которому ищем площадку.
+    search_text = summary_clean.replace(publisher, " ") if publisher else summary_clean
+    park = extract_park(title, search_text)
+    country, flag = park_country(park, title, search_text)
     return {
         "title": title,
         "publisher": publisher,
         "park": park,
         "country": country,
         "flag": flag,
-        "what": summarize(summary, title),
+        "what": summarize(summary_raw, title),
     }
 
 
@@ -266,7 +275,9 @@ def extract_meta_description(markup):
     return best
 
 
-GOOGLE_HOSTS = ("google.com", "gstatic.com", "googleapis.com", "googleusercontent.com")
+# Подстроки, а не окончания: www.google-analytics.com не оканчивается на
+# google.com и раньше проходил фильтр, подсовывая нам analytics.js.
+GOOGLE_HOSTS = ("google", "gstatic", "doubleclick", "googletagmanager", "ggpht")
 HREF_RE = re.compile(r"""(?:href|data-n-au)=["'](https?://[^"']+)["']""", re.IGNORECASE)
 
 
@@ -276,7 +287,7 @@ def resolve_google_news(markup):
         markup = markup.decode("utf-8", errors="replace")
     for candidate in HREF_RE.findall(markup):
         host = candidate.split("/")[2].lower() if "//" in candidate else ""
-        if host and not any(host.endswith(g) for g in GOOGLE_HOSTS):
+        if host and not any(g in host for g in GOOGLE_HOSTS):
             return candidate
     return ""
 

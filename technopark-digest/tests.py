@@ -76,6 +76,21 @@ def main():
     )
     check("без собственного имени площадка не выдумывается", junk["park"] == "", junk["park"])
 
+    check("скрипт аналитики не принимается за статью",
+          extract.resolve_google_news(
+              b'<script src="https://www.google-analytics.com/a.js"></script>'
+              b'<a href="https://vir.com.vn/real">t</a>'
+          ) == "https://vir.com.vn/real")
+
+    check("имя издания не выдаётся за технопарк",
+          extract.normalize(
+              "United States Space Academy starts to become a reality - EdTech Innovation Hub",
+              "United States Space Academy starts to become a reality EdTech Innovation Hub",
+          )["park"] == "")
+
+    check("'Helps Fund' не попадает в название площадки",
+          extract.normalize("Ohio Helps Fund Cleveland Housing Innovation District - X", "y")["park"] == "")
+
     check("промежуточная страница Google News разворачивается",
           extract.resolve_google_news(
               b'<a href="https://www.gstatic.com/x.js"></a>'

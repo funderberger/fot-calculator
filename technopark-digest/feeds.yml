@@ -6,8 +6,10 @@ feeds:
   # --- Google News RSS: главная рабочая лошадка, не требует наличия фида у источника ---
   - name: "GN · science/technology/research park"
     url: "https://news.google.com/rss/search?q=%22science+park%22+OR+%22technology+park%22+OR+%22research+park%22+when:2d&hl=en-US&gl=US&ceid=US:en"
+  # Голый "innovation hub" тащил благотворительные раздачи и жилые районы,
+  # поэтому он теперь требует соседства с научно-технической лексикой.
   - name: "GN · innovation district"
-    url: "https://news.google.com/rss/search?q=%22innovation+district%22+OR+%22innovation+hub%22+when:2d&hl=en-US&gl=US&ceid=US:en"
+    url: "https://news.google.com/rss/search?q=%22innovation+district%22+OR+%28%22innovation+hub%22+AND+%28science+OR+technology+OR+research+OR+campus%29%29+when%3A2d&hl=en-US&gl=US&ceid=US:en"
   - name: "GN · technopark / technopolis"
     url: "https://news.google.com/rss/search?q=technopark+OR+technopolis+OR+%22high-tech+park%22+when:2d&hl=en-US&gl=US&ceid=US:en"
   - name: "GN · deeptech campus / life science campus"
