@@ -90,6 +90,27 @@ PARK_PATTERN_RU = re.compile(
     r"\s+[«\"]?([А-ЯЁA-Z][\wА-Яа-яЁё\-\s]{2,40}?)[»\"]?(?=[\s,.;:—–-]|$)"
 )
 
+# Google News клеит к заголовку " - Название издания". Отрезаем последний
+# такой хвост, если он короткий и не содержит внутри ещё одного разделителя.
+TITLE_TAIL_RE = re.compile(r"\s+[-–—]\s+([^-–—]{2,45})$")
+
+# Названием площадки не может быть глагол или оценочное слово. Берём только
+# то, что стоит ЛЕВЕЕ первого такого слова: "Fortinet Opens New ... Innovation
+# Hub" -> "Fortinet Innovation Hub", а "Launch New AI-Powered ..." -> ничего.
+ACTION_WORDS = {
+    "opens", "open", "opening", "opened", "launch", "launches", "launched",
+    "launching", "announces", "announce", "announced", "unveils", "unveil",
+    "unveiled", "plans", "plan", "planned", "builds", "build", "building",
+    "backs", "back", "backed", "joins", "join", "joined", "hosts", "host",
+    "hosted", "expands", "expand", "expanded", "adds", "add", "added",
+    "creates", "create", "created", "approves", "approve", "approved",
+    "reveals", "reveal", "revealed", "names", "named", "sets", "set",
+    "new", "first", "second", "third", "major", "top", "best", "next",
+    "company-owned", "ai-powered", "state-of-the-art", "multi-million",
+    "the", "a", "an", "its", "his", "her", "their", "our", "this", "that",
+    "to", "at", "in", "on", "with", "and", "of", "for", "from", "by",
+}
+
 TAG_RE = re.compile(r"<[^>]+>")
 WS_RE = re.compile(r"\s+")
 SENTENCE_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZА-ЯЁ0-9\"«])")
@@ -106,12 +127,47 @@ def clean_text(raw):
     return WS_RE.sub(" ", text).strip()
 
 
+def split_title_source(title):
+    """'Заголовок - Издание' -> ('Заголовок', 'Издание')."""
+    match = TITLE_TAIL_RE.search(title)
+    if not match:
+        return title, ""
+    return title[: match.start()].strip(), match.group(1).strip()
+
+
 def detect_country(text):
     lowered = text.lower()
     for pattern, country, flag in COUNTRY_HINTS:
         if re.search(pattern, lowered):
             return country, flag
     return "", ""
+
+
+def trim_to_proper_name(phrase):
+    """Оставляем только собственное имя перед типовым словом.
+
+    Пустая строка означает "определить не удалось" — это честнее, чем
+    выдать кусок заголовка за название технопарка.
+    """
+    words = phrase.split()
+    # Типовое слово ("Park", "Hub", ...) и всё, что справа, оставляем как есть.
+    tail_start = len(words) - 1
+    while tail_start > 0 and words[tail_start - 1].lower() in {
+        "science", "technology", "tech", "research", "innovation", "industrial",
+        "business", "medical", "high-tech", "hi-tech", "software", "digital",
+    }:
+        tail_start -= 1
+
+    head, tail = words[:tail_start], words[tail_start:]
+    kept = []
+    for word in head:
+        if word.lower() in ACTION_WORDS:
+            break
+        kept.append(word)
+
+    if not kept:
+        return ""
+    return " ".join(kept + tail)
 
 
 def extract_park(title, summary):
@@ -125,7 +181,9 @@ def extract_park(title, summary):
 
     match = PARK_PATTERN.search(blob)
     if match:
-        return WS_RE.sub(" ", match.group(1)).strip()
+        candidate = trim_to_proper_name(WS_RE.sub(" ", match.group(1)).strip())
+        if candidate:
+            return candidate
 
     match = PARK_PATTERN_RU.search(blob)
     if match:
@@ -171,12 +229,13 @@ def summarize(summary, title, limit=260):
 
 def normalize(title, summary):
     """Единая точка входа: сырые поля фида -> поля карточки."""
-    title = clean_text(title)
+    title, publisher = split_title_source(clean_text(title))
     summary_clean = clean_text(summary)
     park = extract_park(title, summary_clean)
     country, flag = park_country(park, title, summary_clean)
     return {
         "title": title,
+        "publisher": publisher,
         "park": park,
         "country": country,
         "flag": flag,
@@ -207,7 +266,22 @@ def extract_meta_description(markup):
     return best
 
 
-def fetch_description(url, timeout=8):
+GOOGLE_HOSTS = ("google.com", "gstatic.com", "googleapis.com", "googleusercontent.com")
+HREF_RE = re.compile(r"""(?:href|data-n-au)=["'](https?://[^"']+)["']""", re.IGNORECASE)
+
+
+def resolve_google_news(markup):
+    """Из промежуточной страницы Google News достаём ссылку на издателя."""
+    if isinstance(markup, bytes):
+        markup = markup.decode("utf-8", errors="replace")
+    for candidate in HREF_RE.findall(markup):
+        host = candidate.split("/")[2].lower() if "//" in candidate else ""
+        if host and not any(host.endswith(g) for g in GOOGLE_HOSTS):
+            return candidate
+    return ""
+
+
+def fetch_description(url, timeout=8, depth=0):
     """Сетевой поход за описанием. Любая ошибка -> пустая строка, дайджест не падает."""
     import urllib.request
 
@@ -223,6 +297,18 @@ def fetch_description(url, timeout=8):
             ctype = response.headers.get("Content-Type", "")
             if "html" not in ctype.lower():
                 return ""
-            return extract_meta_description(response.read(400_000))
+            markup = response.read(400_000)
+            final_host = urllib.parse.urlsplit(response.geturl()).netloc.lower()
     except Exception:
         return ""
+
+    description = extract_meta_description(markup)
+    if description:
+        return description
+
+    # Застряли на промежуточной странице Google News — идём к издателю.
+    if "news.google.com" in final_host and depth < 1:
+        target = resolve_google_news(markup)
+        if target:
+            return fetch_description(target, timeout=timeout, depth=depth + 1)
+    return ""

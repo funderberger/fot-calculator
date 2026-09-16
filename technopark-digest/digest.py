@@ -146,7 +146,9 @@ def render(items, problems):
         lines.append(f"<b>{n}. {esc(item['title'])}</b>")
         lines.append(f"🏢 <b>Технопарк:</b> {esc(park)}")
         lines.append(f"📌 <b>Что сделали:</b> {esc(item['what'] or 'подробности по ссылке')}")
-        lines.append(f'🔗 <a href="{esc(item["link"], quote=True)}">{esc(item["source"])}</a>')
+        # Имя издания из заголовка точнее, чем название фида ("GN · ...").
+        origin = item.get("publisher") or item["source"]
+        lines.append(f'🔗 <a href="{esc(item["link"], quote=True)}">{esc(origin)}</a>')
         lines.append("")
 
     if problems:

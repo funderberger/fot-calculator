@@ -59,6 +59,29 @@ def main():
     check("нет площадки -> пусто, а не выдумка",
           extract.normalize("Generic story", "Nothing here.")["park"] == "")
 
+    # Регрессии по боевому прогону 16.09.2026: см. лог run 35082825442.
+    gn = extract.normalize(
+        "Fortinet Opens New Company-Owned Innovation Hub in New York City - marketscreener.com",
+        "Fortinet Opens New Company-Owned Innovation Hub in New York City",
+    )
+    check("хвост издания отрезан от заголовка",
+          gn["title"].endswith("New York City"), gn["title"])
+    check("издание вынуто отдельно", gn["publisher"] == "marketscreener.com", gn["publisher"])
+    check("глагол не попал в название площадки",
+          gn["park"] == "Fortinet Innovation Hub", gn["park"])
+
+    junk = extract.normalize(
+        "Baptist Health, Nvidia Launch New AI-Powered Healthcare Innovation Hub - Becker's",
+        "x",
+    )
+    check("без собственного имени площадка не выдумывается", junk["park"] == "", junk["park"])
+
+    check("промежуточная страница Google News разворачивается",
+          extract.resolve_google_news(
+              b'<a href="https://www.gstatic.com/x.js"></a>'
+              b'<a href="https://vir.com.vn/real-article">t</a>'
+          ) == "https://vir.com.vn/real-article")
+
     page = b'<meta property="og:description" content="Park expands by 195 hectares.">'
     check("og:description", extract.extract_meta_description(page) == "Park expands by 195 hectares.")
 
