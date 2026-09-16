@@ -239,10 +239,14 @@ def main():
     enrich(items, enabled=not args.no_enrich)
     text = render(items, problems)
 
+    # Диагностика источников нужна в логах всегда, а не только при --dry-run:
+    # иначе в CI не видно, какой фид отвалился.
+    for problem in problems:
+        print(f"WARN источник не ответил -> {problem}", file=sys.stderr)
+    print(f"INFO собрано новостей: {len(items)}", file=sys.stderr)
+
     if args.dry_run:
         print(text)
-        for problem in problems:
-            print("WARN", problem, file=sys.stderr)
         return
 
     token, chat_id = credentials()
