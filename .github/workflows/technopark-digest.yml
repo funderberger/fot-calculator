@@ -4,7 +4,12 @@ on:
   schedule:
     # 05:00 UTC = 08:00 МСК. Cron в GitHub Actions всегда в UTC.
     - cron: "0 5 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Предпросмотр: показать выпуск в логе, не отправляя в Telegram"
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # нужно для коммита seen.json (память об отправленных ссылках)
@@ -36,11 +41,12 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python digest.py
+        run: python digest.py ${{ inputs.dry_run && '--dry-run' || '' }}
 
       # Новости уже отправлены; если не удалось сохранить память — это не повод
       # красить прогон в красное, просто в следующий раз возможен повтор.
       - name: Remember what was sent
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |
           git config user.name  "technopark-digest"

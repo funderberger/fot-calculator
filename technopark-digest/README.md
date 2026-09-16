@@ -66,6 +66,13 @@ crontab -e
 (`main`). В другой ветке workflow не появится в списке Actions и не будет
 срабатывать по утрам.
 
+## Предпросмотр без отправки
+
+В [Actions → technopark-digest → Run workflow](https://github.com/funderberger/fot-calculator/actions/workflows/technopark-digest.yml)
+есть галочка «Предпросмотр». С ней выпуск печатается в лог прогона и никуда
+не отправляется, а новости не помечаются прочитанными — удобно, чтобы
+посмотреть на подборку перед настоящей рассылкой.
+
 ## Отладка
 
 ```bash

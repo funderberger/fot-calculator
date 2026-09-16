@@ -18,16 +18,19 @@ feeds:
   # --- Отраслевые ассоциации (первоисточники) ---
   - name: "IASP"
     url: "https://news.google.com/rss/search?q=site:iasp.ws+when:7d&hl=en-US&gl=US&ceid=US:en"
+  # Свой фид aurp.net отдаёт невалидный XML (проверено в CI 16.09.2026),
+  # поэтому берём через Google News.
   - name: "AURP (университетские research parks, США/Канада)"
-    url: "https://aurp.net/feed/"
+    url: "https://news.google.com/rss/search?q=site:aurp.net+when:7d&hl=en-US&gl=US&ceid=US:en"
   - name: "UKSPA (научные парки Великобритании)"
     url: "https://www.ukspa.org.uk/feed/"
   - name: "EBN / EU|BIC (европейские бизнес-инновационные центры)"
     url: "https://ebn.eu/feed/"
 
   # --- Медиа по инновационной экономике ---
+  # rss.xml отдаёт невалидный XML (проверено в CI 16.09.2026).
   - name: "Science|Business (научная политика ЕС)"
-    url: "https://sciencebusiness.net/rss.xml"
+    url: "https://news.google.com/rss/search?q=site:sciencebusiness.net+when:7d&hl=en-US&gl=US&ceid=US:en"
   - name: "Sifted (европейские стартапы и хабы)"
     url: "https://sifted.eu/feed"
   - name: "EU-Startups"
