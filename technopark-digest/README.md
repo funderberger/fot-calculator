@@ -16,25 +16,40 @@
 вида «X Science Park», «технопарк "X"», «ОЭЗ "X"»). Если площадку определить
 нельзя — пишется «не определён», а не выдуманное название.
 
-## Что осталось сделать руками
+## Запуск — вариант А: на своём компьютере (быстрее всего)
 
-Всё, кроме двух шагов, уже настроено. Смотри раздел «Запуск» ниже.
+GitHub для этого не нужен.
 
-## Запуск
+```bash
+cd technopark-digest
+pip install -r requirements.txt
 
-**1. Создать бота.** Открой [@BotFather](https://t.me/BotFather) → `/newbot` →
-имя → username (заканчивается на `bot`). Получишь токен `8123456789:AAH...`.
+cp .env.example .env        # и вписать туда токен и chat_id
+python3 digest.py --ping    # проверка связи: должно прийти "Связь есть"
+python3 digest.py           # первый настоящий выпуск
+```
 
-**2. Узнать свой chat_id.** Напиши [@userinfobot](https://t.me/userinfobot)
-что угодно — он ответит твоим ID. Затем обязательно нажми `/start` у своего
-нового бота, иначе он не имеет права тебе писать.
+Файл `.env` лежит в `.gitignore` — секреты в репозиторий не уедут.
 
-*Вариант с каналом:* создай приватный канал, добавь бота администратором с
-правом публикации, опубликуй туда что-нибудь и открой
-`https://api.telegram.org/bot<ТОКЕН>/getUpdates` — ID канала будет
-отрицательным, вида `-1001234567890`.
+Ежедневный запуск в 08:00 через `cron` (macOS, Linux):
 
-**3. Вписать оба значения в секреты репозитория:**
+```bash
+crontab -e
+# добавить строку, подставив свой путь:
+0 8 * * * cd /путь/к/technopark-digest && /usr/bin/python3 digest.py >> digest.log 2>&1
+```
+
+На Windows то же самое делается через «Планировщик заданий» → создать задачу →
+ежедневно в 08:00 → действие `python.exe`, аргумент `digest.py`.
+
+## Запуск — вариант Б: GitHub Actions (ничего не должно быть включено)
+
+**1.** Создать бота: [@BotFather](https://t.me/BotFather) → `/newbot`.
+
+**2.** Узнать chat_id: [@userinfobot](https://t.me/userinfobot). Затем нажать
+`/start` у своего бота, иначе он не имеет права писать первым.
+
+**3.** Вписать секреты:
 [Settings → Secrets → Actions → New secret](https://github.com/funderberger/fot-calculator/settings/secrets/actions/new)
 
 | Имя секрета | Значение |
@@ -42,16 +57,16 @@
 | `TELEGRAM_BOT_TOKEN` | токен из BotFather |
 | `TELEGRAM_CHAT_ID` | ID из шага 2 |
 
-**4. Проверить, не дожидаясь утра:**
+**4.** Проверить, не дожидаясь утра:
 [Actions → technopark-digest → Run workflow](https://github.com/funderberger/fot-calculator/actions/workflows/technopark-digest.yml)
 
 Дальше дайджест приходит сам в 08:00 МСК.
 
-## Локальный прогон
+## Отладка
 
 ```bash
-pip install -r requirements.txt
 python3 digest.py --dry-run     # выдача в консоль, ничего не отправляется
+python3 digest.py --no-enrich   # не ходить за описаниями на сайты (быстрее)
 python3 tests.py                # самопроверка, сеть не нужна
 ```
 
@@ -64,6 +79,7 @@ python3 tests.py                # самопроверка, сеть не нуж
 | `extract.py` | разбор новости на поля: площадка, страна, суть |
 | `tests.py` | самопроверка, гоняется в CI перед каждой отправкой |
 | `seen.json` | уже отправленные ссылки, хранятся 30 дней |
+| `.env` | токен и chat_id для локального запуска (в `.gitignore`) |
 | `../.github/workflows/technopark-digest.yml` | расписание |
 
 ## Настройки

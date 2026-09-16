@@ -186,12 +186,53 @@ def send(text, token, chat_id):
         time.sleep(1)  # не упираемся в rate limit
 
 
+def load_env():
+    """Читаем .env рядом со скриптом. Файл в .gitignore — в репозиторий не уедет.
+
+    Переменные окружения имеют приоритет: в CI секреты приходят от GitHub.
+    """
+    env_path = ROOT / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+def credentials(send_test=False):
+    """Достаём токен и chat_id, при --ping сразу проверяем связь."""
+    try:
+        token = os.environ["TELEGRAM_BOT_TOKEN"]
+        chat_id = os.environ["TELEGRAM_CHAT_ID"]
+    except KeyError as missing:
+        sys.exit(
+            f"Не задано {missing}. Пропиши его в файл .env рядом со скриптом "
+            "или передай переменной окружения."
+        )
+
+    if send_test:
+        send("<b>✅ Связь есть.</b> Дайджест по технопаркам подключён.", token, chat_id)
+        print("Тестовое сообщение отправлено.")
+    return token, chat_id
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="печать в консоль")
     parser.add_argument("--no-enrich", action="store_true", help="не ходить за описаниями")
+    parser.add_argument("--ping", action="store_true",
+                        help="отправить тестовое сообщение и выйти")
     parser.add_argument("--config", default=str(ROOT / "feeds.yml"))
     args = parser.parse_args()
+
+    load_env()
+
+    if args.ping:
+        credentials(send_test=True)
+        return
 
     config = yaml.safe_load(pathlib.Path(args.config).read_text())
     items, problems, seen = collect(config)
@@ -204,7 +245,8 @@ def main():
             print("WARN", problem, file=sys.stderr)
         return
 
-    send(text, os.environ["TELEGRAM_BOT_TOKEN"], os.environ["TELEGRAM_CHAT_ID"])
+    token, chat_id = credentials()
+    send(text, token, chat_id)
     for item in items:
         seen[item["key"]] = time.time()
     save_seen(seen)  # помечаем отправленным только после успешной отправки
